@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureURL_AI :: phishing scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <div class="term">
+    <div class="term-titlebar">
+      <span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span>
+      <span class="term-path">root@secureurl:~/phishing-scanner$</span>
+    </div>
+
+    <div class="term-body">
+      <pre class="ascii-logo" aria-hidden="true">
+ ____                      _   _ ______ _      
+/ ___|  ___  ___ _   _ _ __| | | |  _ \ |      
+\___ \ / _ \/ __| | | | '__| | | | |_) | |      
+ ___) |  __/ (__| |_| | |  | |_| |  _ &lt;| |____  
+|____/ \___|\___|\__,_|_|   \___/|_| \_\______| AI
+      </pre>
+      <p class="tagline">// phishing url scanner &mdash; real-time feature analysis</p>
+
+      <form action="/predict" method="POST" class="url-form">
+        <span class="prompt-chevron">&gt;</span>
+        <input
+          type="text"
+          name="url"
+          class="url-input"
+          placeholder="enter target url..."
+          value="{{ url if url else '' }}"
+          autocomplete="off"
+          spellcheck="false"
+          required
+          autofocus
+        >
+        <button type="submit" class="scan-btn">[ SCAN ]</button>
+      </form>
+
+      {% if error %}
+        <div class="panel error-panel">
+          <p><span class="tag tag-error">ERROR</span> {{ error }}</p>
+        </div>
+      {% endif %}
+
+      {% if result %}
+        <div class="panel log-panel" id="scanLog" data-target="{{ url }}" data-verdict="{{ color }}">
+          <p class="log-line">$ resolving target <span class="log-target">{{ url }}</span>...</p>
+          <p class="log-line">$ extracting {{ feature_count }} url/domain signals...</p>
+          <p class="log-line">$ running RandomForest classifier...</p>
+          <p class="log-line log-done">$ scan complete.</p>
+        </div>
+
+        <div class="panel result-panel {{ color }}">
+          <div class="result-head">
+            <span class="result-icon">{{ '[OK]' if color == 'green' else '[!!]' }}</span>
+            <h2 class="result-title">{{ result }}</h2>
+          </div>
+          <div class="dashboard-row">
+            <div class="gauge-wrap">
+              <svg viewBox="0 0 130 130" width="130" height="130">
+                <circle class="gauge-track" cx="65" cy="65" r="54"></circle>
+                <circle
+                  class="gauge-fill {{ color }}"
+                  cx="65" cy="65" r="54"
+                  stroke-dasharray="339.292"
+                  stroke-dashoffset="{{ 339.292 - (339.292 * score / 100) }}"
+                ></circle>
+              </svg>
+              <div class="gauge-center">
+                <span class="gauge-pct {{ color }}">{{ score }}%</span>
+                <span class="gauge-caption">CONFIDENCE</span>
+              </div>
+            </div>
+
+            <div class="confidence-row">
+              <span class="confidence-label">RISK_LEVEL: {{ risk_level }}</span>
+              <div class="confidence-bar">
+                <div class="confidence-fill {{ color }}" style="width: {{ score }}%;"></div>
+              </div>
+              <span class="confidence-value risk-{{ color }}">{{ result }}</span>
+              <p class="flagged-count">Flags triggered: <b>{{ risky_count }}</b> / {{ total_count }} signals analyzed</p>
+            </div>
+          </div>
+
+          {% if suspicious_words %}
+            <p class="suspicious-line">
+              <span class="tag tag-warn">FLAGGED KEYWORDS</span>
+              {{ suspicious_words | join(', ') }}
+            </p>
+          {% endif %}
+
+          <div class="breakdown-section">
+            <p class="breakdown-title">$ signal_breakdown &mdash; {{ risky_count }}/{{ total_count }} flags triggered</p>
+            <div class="breakdown-grid">
+              {% for item in breakdown %}
+                <div class="signal-row {{ 'flagged' if item.risky else 'clear' }}">
+                  <span class="signal-status">{{ '[X]' if item.risky else '[ ]' }}</span>
+                  <span class="signal-label">{{ item.label }}</span>
+                  <span class="chart-bar"><span class="chart-bar-fill"></span></span>
+                </div>
+                <div class="signal-desc" style="grid-column: 1 / -1; margin: -2px 0 4px 38px;">{{ item.description }}</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="panel examples-panel">
+        <p class="examples-title">$ sample_targets --list</p>
+        <ul class="examples-list">
+          <li onclick="document.querySelector('.url-input').value='https://google.com'">https://google.com</li>
+          <li onclick="document.querySelector('.url-input').value='https://github.com'">https://github.com</li>
+          <li onclick="document.querySelector('.url-input').value='http://paypal-login-security.xyz'">http://paypal-login-security.xyz</li>
+          <li onclick="document.querySelector('.url-input').value='http://192.168.1.1/verify-account'">http://192.168.1.1/verify-account</li>
+        </ul>
+      </div>
+
+      <p class="term-footer">SecureURL_AI v1.0 :: Flask + Scikit-Learn :: for educational use only</p>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.examples-list li').forEach(function(li) {
+      li.style.cursor = 'pointer';
+    });
+  </script>
+</body>
+</html>
